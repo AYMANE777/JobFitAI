@@ -105,36 +105,38 @@ function EditorContent() {
     }
   }, [resumeId, mode]);
 
-  const handleSaveResume = () => {
-    const savedResumes = localStorage.getItem('resumes') || '[]';
-    const resumes = JSON.parse(savedResumes);
-    
-    const resumeData = {
-      id: resumeId || Date.now(),
-      title: optimizedCv?.personal_info?.job_title || 'Untitled Resume',
-      subtitle: `Job Title: ${optimizedCv?.personal_info?.job_title || 'Not specified'}`,
-      type: mode === 'tailor' ? 'tailored' : 'base',
-      data: optimizedCv,
-      updatedAt: new Date().toISOString()
+    const handleSaveResume = () => {
+      const savedResumes = localStorage.getItem('resumes') || '[]';
+      const resumes = JSON.parse(savedResumes);
+      
+      const newId = resumeId || `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+      
+      const resumeData = {
+        id: newId,
+        title: optimizedCv?.personal_info?.job_title || 'Untitled Resume',
+        subtitle: `Job Title: ${optimizedCv?.personal_info?.job_title || 'Not specified'}`,
+        type: mode === 'tailor' ? 'tailored' : 'base',
+        data: optimizedCv,
+        updatedAt: new Date().toISOString()
+      };
+
+      let updatedResumes;
+      const existingIndex = resumes.findIndex((r: any) => String(r.id) === String(resumeData.id));
+      
+      if (existingIndex > -1) {
+        updatedResumes = [...resumes];
+        updatedResumes[existingIndex] = resumeData;
+      } else {
+        updatedResumes = [...resumes, resumeData];
+      }
+
+      localStorage.setItem('resumes', JSON.stringify(updatedResumes));
+      showToast('Resume saved successfully!');
+      
+      if (!resumeId) {
+        router.replace(`/editor?id=${resumeData.id}${mode === 'tailor' ? '&mode=tailor' : ''}`);
+      }
     };
-
-    let updatedResumes;
-    const existingIndex = resumes.findIndex((r: any) => r.id === resumeData.id);
-    
-    if (existingIndex > -1) {
-      updatedResumes = [...resumes];
-      updatedResumes[existingIndex] = resumeData;
-    } else {
-      updatedResumes = [...resumes, resumeData];
-    }
-
-    localStorage.setItem('resumes', JSON.stringify(updatedResumes));
-    showToast('Resume saved successfully!');
-    
-    if (!resumeId) {
-      router.replace(`/editor?id=${resumeData.id}`);
-    }
-  };
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ message, type });
@@ -490,9 +492,40 @@ function EditorContent() {
     </div>
   );
 
-  return (
-    <main className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 overflow-hidden relative">
-      {/* Loading Overlay */}
+    return (
+      <main className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 overflow-hidden relative">
+        <style jsx global>{`
+          @media print {
+            @page {
+              margin: 0;
+              size: auto;
+            }
+            body {
+              margin: 0 !important;
+              padding: 0 !important;
+              background: white !important;
+            }
+            .no-print {
+              display: none !important;
+            }
+            main {
+              overflow: visible !important;
+              display: block !important;
+              height: auto !important;
+              background: white !important;
+            }
+            .resume-container {
+              transform: none !important;
+              margin: 0 auto !important;
+              box-shadow: none !important;
+              position: static !important;
+              width: 100% !important;
+              height: auto !important;
+              min-height: 0 !important;
+            }
+          }
+        `}</style>
+        {/* Loading Overlay */}
       <AnimatePresence>
         {loading && (
           <motion.div 
@@ -652,12 +685,12 @@ function EditorContent() {
         </div>
       </nav>
 
-        <div className="flex-1 flex overflow-hidden">
-          {/* Left Panel */}
-          <div 
-            className="bg-white border-r border-slate-200 flex flex-col overflow-hidden shrink-0 no-print"
-            style={{ width: `${leftPanelWidth}px` }}
-          >
+          <div className="flex-1 flex overflow-hidden">
+            {/* Left Panel */}
+            <div 
+              className="bg-white border-r border-slate-200 flex flex-col overflow-hidden shrink-0 no-print"
+              style={{ width: `${leftPanelWidth}px` }}
+            >
           {/* Tabs */}
           <div className="flex border-b border-slate-100 shrink-0 h-14">
             {activeMode === 'content' ? (
@@ -1145,7 +1178,7 @@ function EditorContent() {
           {/* Preview Area */}
           <div className="flex-1 overflow-auto p-12 custom-scrollbar flex justify-center items-start">
              <div 
-               className="bg-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] relative origin-top transition-all duration-300 overflow-hidden"
+               className="resume-container bg-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] relative origin-top transition-all duration-300 overflow-hidden"
                style={{ 
                  transform: `scale(${zoom / 100})`, 
                  width: layoutSettings.format.includes('A4') ? '210mm' : '215.9mm', 

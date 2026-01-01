@@ -25,15 +25,24 @@ export default function DashboardPage() {
   const [jobs, setJobs] = useState<any[]>([]);
   const [coverLetters, setCoverLetters] = useState<any[]>([]);
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    const savedResumes = localStorage.getItem('resumes');
-    const savedJobs = localStorage.getItem('jobs');
-    const savedCoverLetters = localStorage.getItem('cover_letters');
+    // Load from localStorage on mount
+    useEffect(() => {
+      const savedResumes = localStorage.getItem('resumes');
+      const savedJobs = localStorage.getItem('jobs');
+      const savedCoverLetters = localStorage.getItem('cover_letters');
 
-    if (savedResumes) {
-      setResumes(JSON.parse(savedResumes));
-    } else {
+      if (savedResumes) {
+        try {
+          const parsed = JSON.parse(savedResumes);
+          // Deduplicate by ID just in case and ensure IDs are strings/numbers consistently
+          const unique = parsed.filter((v: any, i: number, a: any[]) => 
+            a.findIndex(t => String(t.id) === String(v.id)) === i
+          );
+          setResumes(unique);
+        } catch (e) {
+          setResumes([]);
+        }
+      } else {
       // Default resumes if none saved
       const defaults = [
         {
@@ -101,11 +110,13 @@ export default function DashboardPage() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const filteredResumes = resumes.filter(r => 
-    r.type === activeTab && 
-    (r.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-     r.subtitle.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredResumes = resumes
+    .filter(r => 
+      r.type === activeTab && 
+      (r.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+       r.subtitle.toLowerCase().includes(searchQuery.toLowerCase()))
+    )
+    .filter((v: any, i: number, a: any[]) => a.findIndex(t => String(t.id) === String(v.id)) === i);
 
   const handleDeleteResume = (id: number) => {
     const updated = resumes.filter(r => r.id !== id);
@@ -114,18 +125,18 @@ export default function DashboardPage() {
     showToast('Resume deleted successfully.');
   };
 
-  const handleDuplicateResume = (resume: any) => {
-    const newResume = {
-      ...resume,
-      id: Date.now(),
-      title: `${resume.title} (Copy)`,
-      updatedAt: new Date().toISOString()
+    const handleDuplicateResume = (resume: any) => {
+      const newResume = {
+        ...resume,
+        id: `${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+        title: `${resume.title} (Copy)`,
+        updatedAt: new Date().toISOString()
+      };
+      const updated = [...resumes, newResume];
+      setResumes(updated);
+      localStorage.setItem('resumes', JSON.stringify(updated));
+      showToast('Resume duplicated.');
     };
-    const updated = [...resumes, newResume];
-    setResumes(updated);
-    localStorage.setItem('resumes', JSON.stringify(updated));
-    showToast('Resume duplicated.');
-  };
 
   const handleEditResume = (resume: any) => {
     router.push(`/editor?id=${resume.id}`);
