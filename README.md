@@ -30,7 +30,7 @@ bun run dev
 ```
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## 🧪 Portfolio Note
+## 🧪 Note
 > **This system uses local LLMs (LLaMA / Mistral) to avoid vendor lock-in, reduce operational costs, and guarantee user data privacy.**
 
 ## Tech Stack
